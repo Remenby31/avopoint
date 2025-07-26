@@ -1,50 +1,50 @@
-# AvoPoint - Contestation Automatisée de Contraventions
+# AvoPoint - Automated Traffic Violation Contest
 
-AvoPoint est une application web qui automatise le processus de contestation des contraventions routières en utilisant l'OCR et l'intelligence artificielle pour traiter les documents et générer automatiquement les lettres de contestation.
+AvoPoint is a web application that automates the process of contesting traffic violations by using OCR and artificial intelligence to process documents and automatically generate contest letters.
 
-## Architecture du Projet
+## Project Architecture
 
-Le projet est composé de deux parties principales :
-- **Backend** : API FastAPI (Python) pour le traitement des documents
-- **Frontend** : Application Next.js (React/TypeScript) pour l'interface utilisateur
+The project consists of two main parts:
+- **Backend**: FastAPI (Python) API for document processing
+- **Frontend**: Next.js (React/TypeScript) application for user interface
 
-## Technologies Utilisées
+## Technologies Used
 
 ### Backend
-- **FastAPI** : Framework web moderne et performant
-- **Python 3.x** : Langage de programmation principal
-- **OCR** : Extraction de données depuis les documents PDF/images
-- **ReportLab** : Génération de documents PDF
-- **Pillow & pdf2image** : Traitement d'images
-- **Uvicorn** : Serveur ASGI
+- **FastAPI**: Modern and performant web framework
+- **Python 3.x**: Main programming language
+- **OCR**: Data extraction from PDF/image documents
+- **ReportLab**: PDF document generation
+- **Pillow & pdf2image**: Image processing
+- **Uvicorn**: ASGI server
 
 ### Frontend
-- **Next.js 15** : Framework React avec rendu hybride
-- **React 19** : Bibliothèque d'interface utilisateur
-- **TypeScript** : Typage statique
-- **Tailwind CSS** : Framework CSS utility-first
-- **Lucide React** : Icônes
+- **Next.js 15**: React framework with hybrid rendering
+- **React 19**: User interface library
+- **TypeScript**: Static typing
+- **Tailwind CSS**: Utility-first CSS framework
+- **Lucide React**: Icons
 
 ## Installation
 
-### Prérequis
+### Prerequisites
 - Python 3.8+
 - Node.js 18+
-- npm ou yarn
+- npm or yarn
 
-### Installation du Backend
+### Backend Installation
 
-1. Naviguez vers le répertoire racine du projet :
+1. Navigate to the project root directory:
 ```bash
 cd avopoint
 ```
 
-2. Créez un environnement virtuel Python :
+2. Create a Python virtual environment:
 ```bash
 python -m venv venv
 ```
 
-3. Activez l'environnement virtuel :
+3. Activate the virtual environment:
 ```bash
 # Windows
 venv\Scripts\activate
@@ -53,110 +53,110 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-4. Installez les dépendances Python :
+4. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-### Installation du Frontend
+### Frontend Installation
 
-1. Naviguez vers le répertoire frontend :
+1. Navigate to the frontend directory:
 ```bash
 cd avopoint-frontend
 ```
 
-2. Installez les dépendances Node.js :
+2. Install Node.js dependencies:
 ```bash
 npm install
 ```
 
-## Lancement de l'Application
+## Running the Application
 
-### Démarrage du Backend
+### Starting the Backend
 
-1. Assurez-vous que l'environnement virtuel est activé
-2. Depuis le répertoire racine, lancez l'API :
+1. Make sure the virtual environment is activated
+2. From the root directory, launch the API:
 ```bash
 python app.py
 ```
 
-L'API sera accessible sur : `http://localhost:8000`
+The API will be accessible at: `http://localhost:8000`
 
-Documentation API interactive : `http://localhost:8000/docs`
+Interactive API documentation: `http://localhost:8000/docs`
 
-### Démarrage du Frontend
+### Starting the Frontend
 
-1. Dans un nouveau terminal, naviguez vers le répertoire frontend :
+1. In a new terminal, navigate to the frontend directory:
 ```bash
 cd avopoint-frontend
 ```
 
-2. Lancez l'application en mode développement :
+2. Launch the application in development mode:
 ```bash
 npm run dev
 ```
 
-L'application sera accessible sur : `http://localhost:3000`
+The application will be accessible at: `http://localhost:3000`
 
-## Fonctionnalités
+## Features
 
-- **Upload de documents** : Avis de contravention, certificat d'immatriculation, permis de conduire, justificatif de domicile
-- **Extraction OCR** : Analyse automatique des documents uploadés
-- **Validation croisée** : Vérification de la cohérence des données extraites
-- **Remplissage automatique** : Soumission automatique des formulaires web
-- **Analyse IA** : Détection de la visibilité du conducteur sur les photos radar
-- **Génération PDF** : Création automatique de la lettre de contestation
-- **Suivi en temps réel** : Interface de progression du traitement
+- **Document upload**: Traffic violation notice, vehicle registration certificate, driver's license, proof of residence
+- **OCR extraction**: Automatic analysis of uploaded documents
+- **Cross-validation**: Verification of extracted data consistency
+- **Automatic form filling**: Automated web form submission
+- **AI analysis**: Detection of driver visibility in radar photos
+- **PDF generation**: Automatic creation of contest letters
+- **Real-time tracking**: Processing progress interface
 
-## Structure des Répertoires
+## Directory Structure
 
 ```
 avopoint/
-├── app.py                  # Point d'entrée de l'API FastAPI
-├── requirements.txt        # Dépendances Python
-├── scan.py                # Fonctions OCR
-├── form_filler.py         # Remplissage automatique des formulaires
-├── generate_letter.py     # Génération des lettres PDF
-├── uploads/               # Stockage temporaire des fichiers uploadés
-├── results/               # Résultats générés (lettres PDF)
-├── temp/                  # Fichiers temporaires
-└── avopoint-frontend/     # Application Next.js
+├── app.py                  # FastAPI API entry point
+├── requirements.txt        # Python dependencies
+├── scan.py                # OCR functions
+├── form_filler.py         # Automatic form filling
+├── generate_letter.py     # PDF letter generation
+├── uploads/               # Temporary file storage
+├── results/               # Generated results (PDF letters)
+├── temp/                  # Temporary files
+└── avopoint-frontend/     # Next.js application
     ├── package.json
     ├── src/
     │   └── app/
-    │       ├── components/    # Composants React
-    │       ├── page.tsx      # Page d'accueil
-    │       └── upload/       # Page d'upload
-    └── public/           # Assets statiques
+    │       ├── components/    # React components
+    │       ├── page.tsx      # Home page
+    │       └── upload/       # Upload page
+    └── public/           # Static assets
 ```
 
 ## API Endpoints
 
-- `GET /api/v1/health` : Vérification de l'état du service
-- `POST /api/v1/process-documents` : Upload et traitement des documents
-- `GET /api/v1/task/{task_id}/status` : Suivi de l'avancement
-- `GET /api/v1/task/{task_id}/result` : Téléchargement du résultat
-- `DELETE /api/v1/task/{task_id}` : Suppression d'une tâche
+- `GET /api/v1/health`: Service health check
+- `POST /api/v1/process-documents`: Document upload and processing
+- `GET /api/v1/task/{task_id}/status`: Progress tracking
+- `GET /api/v1/task/{task_id}/result`: Result download
+- `DELETE /api/v1/task/{task_id}`: Task deletion
 
-## Scripts Disponibles
+## Available Scripts
 
 ### Backend
 ```bash
-python app.py              # Lancer le serveur de développement
+python app.py              # Start development server
 ```
 
 ### Frontend
 ```bash
-npm run dev                # Serveur de développement
-npm run build              # Build de production
-npm run start              # Serveur de production
-npm run lint               # Vérification du code
+npm run dev                # Development server
+npm run build              # Production build
+npm run start              # Production server
+npm run lint               # Code linting
 ```
 
-## Contribution
+## Contributing
 
-1. Fork le projet
-2. Créez une branche pour votre fonctionnalité
-3. Committez vos changements
-4. Poussez vers la branche
-5. Ouvrez une Pull Request
+1. Fork the project
+2. Create a branch for your feature
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
