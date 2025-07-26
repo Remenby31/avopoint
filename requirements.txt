@@ -1,0 +1,7 @@
+browser-use
+anthropic
+fastapi
+uvicorn
+python-multipart
+pydantic
+reportlab
