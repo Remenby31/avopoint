@@ -1,6 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Progress } from './ui/progress'
+import { Badge } from './ui/badge'
+import { Button } from './ui/button'
+import { Alert, AlertDescription } from './ui/alert'
+import { Spinner, LoadingDots } from './ui/spinner'
 
 interface ProcessingStatusProps {
   taskId: string
@@ -92,59 +98,65 @@ export default function ProcessingStatus({ taskId, onComplete, onReset, onStatus
         clearInterval(interval)
       }
     }
-  }, [taskId, onComplete])
+  }, [taskId, onComplete, onStatusUpdate])
 
   if (error) {
     return (
-      <div className="text-center">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          Erreur de traitement
-        </h3>
-        <p className="text-red-600 mb-6">{error}</p>
-        <button
-          onClick={onReset}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-        >
-          Recommencer
-        </button>
-      </div>
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <CardTitle className="text-xl text-gray-900 mb-2">
+            Erreur de traitement
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-center">
+            <Button onClick={onReset} className="px-6">
+              Recommencer
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
   if (!status) {
     return (
-      <div className="text-center">
-        <div className="relative w-24 h-24 mx-auto mb-6">
-          {/* Pulsing outer ring */}
-          <div className="absolute inset-0 bg-blue-200 rounded-full animate-ping"></div>
-          <div className="absolute inset-2 bg-blue-100 rounded-full animate-pulse"></div>
-          <div className="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-lg">
-            <svg className="w-8 h-8 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </div>
-        </div>
-        
-        <div className="space-y-3">
-          <h3 className="text-xl font-semibold text-gray-900">Initialisation</h3>
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div className="flex items-center justify-center space-x-2">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-              </div>
-              <span className="text-blue-700 font-medium">Connexion au serveur...</span>
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            {/* Pulsing outer ring */}
+            <div className="absolute inset-0 bg-blue-200 rounded-full animate-ping"></div>
+            <div className="absolute inset-2 bg-blue-100 rounded-full animate-pulse"></div>
+            <div className="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-lg">
+              <Spinner size="lg" className="text-blue-500" />
             </div>
           </div>
-          <p className="text-sm text-gray-500">Préparation du traitement de vos documents</p>
-        </div>
-      </div>
+          <CardTitle className="text-xl text-gray-900 mb-2">
+            Initialisation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertDescription>
+              <div className="flex items-center justify-center space-x-2">
+                <LoadingDots />
+                <span className="text-blue-700 font-medium">Connexion au serveur...</span>
+              </div>
+            </AlertDescription>
+          </Alert>
+          <p className="text-sm text-gray-500 text-center">Préparation du traitement de vos documents</p>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -152,60 +164,63 @@ export default function ProcessingStatus({ taskId, onComplete, onReset, onStatus
   const currentMessage = STEP_MESSAGES[status.current_step as keyof typeof STEP_MESSAGES] || status.message
 
   return (
-    <div className="text-center">
-      <div className="mb-8">
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader className="text-center">
         {/* Animated processing icon */}
         <div className="relative w-32 h-32 mx-auto mb-6">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
           <div className="absolute inset-2 bg-white rounded-full flex items-center justify-center">
             <div className="relative">
-              <svg className="w-16 h-16 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <Spinner size="lg" className="w-16 h-16 text-blue-500" />
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-bounce"></div>
             </div>
           </div>
         </div>
         
-        <div className="space-y-3 mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 animate-fade-in">
-            Traitement en cours
-          </h3>
-          <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+        <CardTitle className="text-2xl font-bold text-gray-900 animate-fade-in mb-4">
+          Traitement en cours
+        </CardTitle>
+        
+        <Alert className="mb-6">
+          <AlertDescription>
             <p className="text-blue-800 font-medium text-lg animate-pulse">
               {currentMessage}
             </p>
-          </div>
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-            <span>Étape actuelle: {status.current_step || status.status}</span>
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
         
+        <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 mb-6">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+          <span>Étape actuelle: </span>
+          <Badge variant="outline">{status.current_step || status.status}</Badge>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
         {/* Enhanced progress bar */}
         <div className="space-y-3">
-          <div className="relative w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
-            <div 
-              className="absolute top-0 left-0 h-full animate-gradient rounded-full transition-all duration-700 ease-out shadow-sm progress-shimmer"
-              style={{ width: `${progressPercentage}%` }}
-            >
-            </div>
-          </div>
+          <Progress value={progressPercentage} className="h-4" />
           
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-600 font-medium">Progression globale</span>
             <div className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-blue-600">{progressPercentage}%</span>
+              <Badge variant="secondary" className="text-lg font-bold">
+                {progressPercentage}%
+              </Badge>
               <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* Enhanced steps timeline */}
-      <div className="bg-gray-50 rounded-xl p-6 max-w-2xl mx-auto">
-        <h4 className="text-lg font-semibold text-gray-800 mb-4 text-center">Étapes du traitement</h4>
-        <div className="space-y-3">
+        
+        {/* Enhanced steps timeline */}
+        <Card className="bg-gray-50">
+          <CardHeader>
+            <CardTitle className="text-lg text-gray-800 text-center">
+              Étapes du traitement
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
           {[
             { threshold: 5, label: 'Réception et vérification des documents', icon: '📄' },
             { threshold: 15, label: 'Extraction OCR avis de contravention', icon: '🔍' },
@@ -256,38 +271,32 @@ export default function ProcessingStatus({ taskId, onComplete, onReset, onStatus
                 </div>
                 {isCompleted && (
                   <div className="ml-auto">
-                    <div className="flex items-center space-x-1 text-green-600">
-                      <span className="text-sm font-semibold">Terminé</span>
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    </div>
+                    <Badge variant="success" className="text-xs">
+                      Terminé ✓
+                    </Badge>
                   </div>
                 )}
                 {isActive && (
                   <div className="ml-auto">
-                    <div className="flex items-center space-x-2 text-blue-600">
-                      <span className="text-sm font-semibold">En cours...</span>
-                      <div className="flex space-x-1">
-                        <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
-                        <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                        <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                      </div>
-                    </div>
+                    <Badge variant="default" className="text-xs">
+                      <LoadingDots className="mr-1" />
+                      En cours...
+                    </Badge>
                   </div>
                 )}
               </div>
             )
           })}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="flex justify-center mt-6">
+          <Button variant="ghost" onClick={onReset} className="text-gray-500 hover:text-gray-700">
+            Annuler le traitement
+          </Button>
         </div>
-      </div>
-      
-      <div className="mt-8">
-        <button
-          onClick={onReset}
-          className="text-gray-500 hover:text-gray-700 text-sm"
-        >
-          Annuler le traitement
-        </button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

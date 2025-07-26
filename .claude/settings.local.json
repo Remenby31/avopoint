@@ -15,7 +15,14 @@
       "Bash(rd /s /q .next)",
       "Bash(find:*)",
       "Bash(npm ls:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx:*)",
+      "Bash(npm run lint)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(timeout 30 npm run build)",
+      "Bash(timeout 60 npm run build)"
     ],
     "deny": []
   }
