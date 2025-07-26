@@ -585,92 +585,83 @@ class LetterGenerator:
         if certificat_data and "vehicule" in certificat_data:
             marque_vehicule = certificat_data["vehicule"].get("marque", "N/A")
         
-        date_lettre = datetime.now().strftime("%d/%m/%Y")
-        
-        # Génération du contenu LaTeX
-        latex_content = f"""
-\\documentclass[11pt,a4paper]{{article}}
+        # Génération du contenu LaTeX avec la mise en forme professionnelle
+        latex_content = f"""\\documentclass[12pt,a4paper]{{article}}
+% Encodage et langue
 \\usepackage[utf8]{{inputenc}}
+\\usepackage[T1]{{fontenc}}
 \\usepackage[french]{{babel}}
-\\usepackage[margin=2.5cm]{{geometry}}
-\\usepackage{{fancyhdr}}
+% Mise en page
+\\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm]{{geometry}}
 \\usepackage{{setspace}}
-
+\\setstretch{{1.3}} % Interligne principal
+% Police Times New Roman
+\\usepackage{{newtxtext,newtxmath}}
+% Suppression de l'indentation et justification
+\\setlength{{\\parindent}}{{0pt}}
+\\setlength{{\\parskip}}{{0.6em}} % Espace entre paragraphes
+\\usepackage{{ragged2e}}
+\\justifying
+% Date automatique au format français personnalisé
+\\usepackage[french]{{datetime2}}
+\\renewcommand{{\\DTMdisplaydate}}[4]{{\\number##3~\\DTMfrenchmonthname{{##2}}~##1}}
+% Gestion des images
+\\usepackage{{graphicx}}
+% --- Variables client ---
+\\newcommand{{\\nomclient}}{{{nom_prenom}}}
+\\newcommand{{\\adresseclient}}{{{adresse}}}
+\\newcommand{{\\numcontravention}}{{{numero_contravention}}}
+\\newcommand{{\\dateinfraction}}{{{date_contravention}}}
+% --- Variables avocat ---
+\\newcommand{{\\nomavocat}}{{Maître Yoann LEROUGE}}
+\\newcommand{{\\signaturefile}}{{signature.png}} % Nom du fichier image de signature
+% --- Variables destinataire ---
+\\newcommand{{\\adresseofficier}}{{CONTESTATION VITESSE\\\\CS41101\\\\35911 RENNES CEDEX 9}}
+% ----------------------------
 \\begin{{document}}
+% En-tête avocat
+\\noindent
+\\textbf{{\\nomavocat}} \\\\
+Cabinet YSL \\\\
+74 rue du Faubourg Saint-Denis \\\\
+75010 PARIS
+\\vspace{{0.6cm}}
+% Bloc destinataire + date dans un seul bloc décalé de 10 cm
+\\noindent
 
-\\begin{{flushright}}
-{nom_prenom}\\\\
-{adresse}\\\\
-\\\\
-Le {date_lettre}
-\\end{{flushright}}
-
-\\vspace{{1cm}}
-
-\\textbf{{À l'attention de :}}\\\\
-Service de Traitement des Contraventions\\\\
-Centre National de Traitement\\\\
-CS 41101\\\\
-35911 RENNES CEDEX 9
-
-\\vspace{{2cm}}
-
-\\begin{{center}}
-\\textbf{{\\large CONTESTATION DE CONTRAVENTION}}\\\\
-\\textbf{{Avis de contravention n° {numero_contravention}}}
-\\end{{center}}
-
-\\vspace{{1cm}}
-
-Madame, Monsieur,
-
-Je conteste par la présente l'avis de contravention mentionné en objet, établi le {date_contravention} concernant le véhicule immatriculé {immatriculation}.
-
-\\textbf{{RÉFÉRENCES DE LA CONTRAVENTION :}}
-\\begin{{itemize}}
-\\item Numéro d'avis : {numero_contravention}
-\\item Date de l'infraction : {date_contravention}  
-\\item Lieu : {lieu_contravention}
-\\item Véhicule : {marque_vehicule}
-\\item Immatriculation : {immatriculation}
-\\end{{itemize}}
-
-\\textbf{{MOTIFS DE CONTESTATION :}}
-\\begin{{enumerate}}
-"""
-        
-        # Ajouter les motifs selon la visibilité du conducteur
-        motifs = self._get_motifs_latex(driver_visible)
-        for motif in motifs:
-            latex_content += f"\\item {motif}\n"
-        
-        latex_content += f"""
-\\end{{enumerate}}
-
-En application des articles 529-2 et suivants du Code de procédure pénale, je conteste formellement cette contravention et demande son annulation.
-
-Je vous prie de bien vouloir annuler cette contravention et vous remercie de l'attention que vous porterez à ma demande.
-
-Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
-
-\\vspace{{2cm}}
-
-\\begin{{flushright}}
-{nom_prenom}\\\\
-\\textit{{Signature}}
-\\end{{flushright}}
-
-\\textbf{{Pièces jointes :}}
-\\begin{{itemize}}
-\\item Copie de l'avis de contravention
-\\item Copie du certificat d'immatriculation  
-\\item Copie du permis de conduire
-\\item Copie du justificatif de domicile
-\\item Photo du contrôle radar (si applicable)
-\\end{{itemize}}
-
-\\end{{document}}
-"""
+\\hspace*{{10cm}}%
+\\begin{{minipage}}{{7cm}}
+\\textbf{{L'Officier du Ministère Public}} \\\\
+\\normalsize \\adresseofficier \\\\
+\\vspace{{0.4cm}} \\\\
+\\textbf{{Paris,}} le \\DTMdisplaydate{{\\year}}{{\\month}}{{\\day}}{{-1}}
+\\end{{minipage}}
+\\vspace{{0.6cm}}
+% Objet
+\\noindent
+\\textbf{{Objet : Contestation d'un procès-verbal pour excès de vitesse}} \\\\
+\\vspace{{0.15cm}}
+\\textit{{Avis de contravention n° \\numcontravention}} \\\\[0.3cm]
+Madame, Monsieur l'Officier du Ministère Public, \\\\
+En qualité de représentant de \\nomclient, domicilié au \\adresseclient, j'ai été mandaté pour
+contester l'avis de contravention n° \\numcontravention \\ reçu en date du \\dateinfraction,
+concernant un excès de vitesse supposé commis à cette occasion.
+En tant que propriétaire du véhicule responsable de l'infraction, mon client a été présumé en
+être le conducteur au moment des faits. Toutefois, mon client conteste être le conducteur au
+moment de la réalisation de l'infraction. De plus, la photographie prise (ci-jointe) ne permet pas
+d'identifier le conducteur.
+En conséquence, je sollicite l'annulation de ce procès-verbal pour les raisons évoquées.
+Dans l'attente de votre retour, je vous remercie pour l'examen attentif de la demande.
+\\vspace{{1.2cm}}
+% Bloc nom avocat + signature décalé de 10 cm
+\\noindent
+\\hspace*{{10cm}}%
+\\begin{{minipage}}{{7cm}}
+\\textbf{{\\nomavocat}} \\\\
+% Note: Si signature.png n'existe pas, cette ligne sera ignorée
+% \\includegraphics[width=2.5cm]{{\\signaturefile}} % Taille de la signature réduite
+\\end{{minipage}}
+\\end{{document}}"""
         
         return latex_content
 

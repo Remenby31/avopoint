@@ -8,7 +8,7 @@ import dotenv
 # Charger les variables d'environnement depuis .env
 dotenv.load_dotenv()
 
-def fill_website_form(validated_data: dict) -> dict:
+async def fill_website_form(validated_data: dict) -> dict:
     """
     Remplit le formulaire sur le site web via browser-use
     L'objectif est d'envoyer l'image du radar par email à l'avocat
@@ -66,12 +66,11 @@ def fill_website_form(validated_data: dict) -> dict:
     )
     
     try:
-        # Simulation pour la démo - remplacer par agent.run() en production
-        import time
-        time.sleep(2)  # Simuler le traitement
-        result = "Simulation réussie"
+        # Exécution réelle de l'agent browser-use
+        print("Démarrage de l'agent browser-use...")
+        result = await agent.run()
         
-        # Retour simplifié - juste le statut de réussite
+        # Retour avec les détails de l'exécution
         return {
             "status": "success",
             "formulaire_rempli": True,
