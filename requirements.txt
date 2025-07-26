@@ -5,3 +5,5 @@ uvicorn
 python-multipart
 pydantic
 reportlab
+pdf2image
+Pillow

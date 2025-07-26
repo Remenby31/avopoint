@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Optional
 import uuid
@@ -26,6 +27,15 @@ app = FastAPI(
     title="API Traitement Contraventions",
     description="API pour le traitement automatisé des contraventions",
     version="1.0.0"
+)
+
+# Configuration CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Configuration des logs
@@ -67,16 +77,17 @@ class HealthResponse(BaseModel):
 
 # États possibles des tâches avec plus de détails
 TASK_STATUS = {
-    "UPLOADED": {"progress": 0, "message": "Documents reçus"},
-    "SCANNING_CONTRAVENTION": {"progress": 10, "message": "Extraction des données de contravention"},
-    "SCANNING_CERTIFICAT": {"progress": 15, "message": "Extraction des données du certificat d'immatriculation"},
-    "SCANNING_PERMIS": {"progress": 20, "message": "Extraction des données du permis de conduire"},
-    "SCANNING_DOMICILE": {"progress": 25, "message": "Extraction des données du justificatif de domicile"},
-    "VALIDATING": {"progress": 40, "message": "Validation des données"},
-    "FILLING_FORM": {"progress": 60, "message": "Remplissage du formulaire web"},
-    "ANALYZING_PHOTO": {"progress": 80, "message": "Analyse de la photo"},
-    "GENERATING_PDF": {"progress": 90, "message": "Génération du PDF"},
-    "COMPLETED": {"progress": 100, "message": "Traitement terminé"},
+    "UPLOADED": {"progress": 5, "message": "Documents reçus et vérifiés"},
+    "SCANNING_CONTRAVENTION": {"progress": 15, "message": "Extraction OCR de l'avis de contravention"},
+    "SCANNING_CERTIFICAT": {"progress": 25, "message": "Extraction OCR du certificat d'immatriculation"},
+    "SCANNING_PERMIS": {"progress": 35, "message": "Extraction OCR du permis de conduire"},
+    "SCANNING_DOMICILE": {"progress": 45, "message": "Extraction OCR du justificatif de domicile"},
+    "VALIDATING": {"progress": 55, "message": "Validation croisée des données extraites"},
+    "FILLING_FORM": {"progress": 65, "message": "Demande automatique d'image radar"},
+    "RETRIEVING_RADAR_IMAGE": {"progress": 75, "message": "Récupération de l'image du radar"},
+    "ANALYZING_PHOTO": {"progress": 85, "message": "Analyse IA de la visibilité du conducteur"},
+    "GENERATING_PDF": {"progress": 95, "message": "Génération de la lettre de contestation"},
+    "COMPLETED": {"progress": 100, "message": "Contestation prête à télécharger"},
     "FAILED": {"progress": -1, "message": "Erreur lors du traitement"}
 }
 
@@ -158,6 +169,8 @@ async def process_documents_async(task_id: str, file_paths: dict) -> None:
         # --- 1.1: SCAN DE L'AVIS DE CONTRAVENTION ---
         if "contravention" in file_paths:
             update_task_status(task_id, "SCANNING_CONTRAVENTION", "Extraction des données de l'avis de contravention...")
+            import asyncio
+            await asyncio.sleep(0.2)  # Délai pour permettre au frontend de voir cette étape
             try:
                 extracted_data["contravention"] = scan_contravention(file_paths["contravention"])
                 logger.info(f"Contravention scannée avec succès pour la tâche {task_id}")
@@ -169,6 +182,7 @@ async def process_documents_async(task_id: str, file_paths: dict) -> None:
         # --- 1.2: SCAN DU CERTIFICAT D'IMMATRICULATION ---
         if "certificat" in file_paths:
             update_task_status(task_id, "SCANNING_CERTIFICAT", "Extraction des données du certificat d'immatriculation...")
+            await asyncio.sleep(0.2)  # Délai pour permettre au frontend de voir cette étape
             try:
                 extracted_data["certificat"] = scan_certificat_immatriculation(file_paths["certificat"])
                 logger.info(f"Certificat scanné avec succès pour la tâche {task_id}")
@@ -180,6 +194,7 @@ async def process_documents_async(task_id: str, file_paths: dict) -> None:
         # --- 1.3: SCAN DU PERMIS DE CONDUIRE ---
         if "permis" in file_paths:
             update_task_status(task_id, "SCANNING_PERMIS", "Extraction des données du permis de conduire...")
+            await asyncio.sleep(0.2)  # Délai pour permettre au frontend de voir cette étape
             try:
                 extracted_data["permis"] = scan_permis_conduire(file_paths["permis"])
                 logger.info(f"Permis scanné avec succès pour la tâche {task_id}")
@@ -191,6 +206,7 @@ async def process_documents_async(task_id: str, file_paths: dict) -> None:
         # --- 1.4: SCAN DU JUSTIFICATIF DE DOMICILE ---
         if "domicile" in file_paths:
             update_task_status(task_id, "SCANNING_DOMICILE", "Extraction des données du justificatif de domicile...")
+            await asyncio.sleep(0.2)  # Délai pour permettre au frontend de voir cette étape
             try:
                 extracted_data["domicile"] = scan_justificatif_domicile(file_paths["domicile"])
                 logger.info(f"Justificatif de domicile scanné avec succès pour la tâche {task_id}")
@@ -203,6 +219,7 @@ async def process_documents_async(task_id: str, file_paths: dict) -> None:
         # ÉTAPE 2: VALIDATION ET VÉRIFICATION DE LA COHÉRENCE DES DONNÉES
         # =========================================================================
         update_task_status(task_id, "VALIDATING", "Validation de la cohérence des données extraites...")
+        await asyncio.sleep(2)  # Délai pour permettre au frontend de voir cette étape
         try:
             validation_result = validate_documents_data(
                 contravention_data=extracted_data.get("contravention"),
@@ -237,19 +254,18 @@ async def process_documents_async(task_id: str, file_paths: dict) -> None:
         # =========================================================================
         # ÉTAPE 4: RÉCUPÉRATION DE L'IMAGE DU RADAR DEPUIS LES EMAILS
         # =========================================================================
-        update_task_status(task_id, "FILLING_FORM", "Récupération de l'image du radar depuis les emails...")
+        update_task_status(task_id, "RETRIEVING_RADAR_IMAGE", "Récupération de l'image du radar depuis les emails...")
         
-        # TODO: Implémenter la fonction de vérification des emails
-        # try:
-        #     photo_path = check_email_for_radar_image()
-        #     tasks_storage[task_id]["radar_photo"] = photo_path
-        # except Exception as e:
-        #     logger.warning(f"Impossible de récupérer l'image radar {task_id}: {str(e)}")
+        # Simulation de récupération de l'image radar
+        await asyncio.sleep(0.2)  # Simuler le temps de récupération
+        tasks_storage[task_id]["radar_photo"] = "simulation_radar_image.jpg"
+        logger.info(f"Image radar simulée pour la tâche {task_id}")
         
         # =========================================================================
         # ÉTAPE 5: ANALYSE INTELLIGENTE DE LA PHOTO DU RADAR
         # =========================================================================
         update_task_status(task_id, "ANALYZING_PHOTO", "Analyse de la visibilité du conducteur...")
+        await asyncio.sleep(2)  # Délai pour permettre au frontend de voir cette étape
         try:
             # TODO: Remplacer par la vraie fonction d'analyse IA
             # driver_visible = detect_clear_driver(form_result.get("photo_path"))
@@ -265,6 +281,7 @@ async def process_documents_async(task_id: str, file_paths: dict) -> None:
         # ÉTAPE 6: GÉNÉRATION DU DOCUMENT FINAL DE CONTESTATION
         # =========================================================================
         update_task_status(task_id, "GENERATING_PDF", "Génération du document de contestation...")
+        await asyncio.sleep(2)  # Délai pour permettre au frontend de voir cette étape
         try:
             pdf_path = generate_final_pdf(extracted_data, driver_visible, task_id)
             tasks_storage[task_id]["result_file"] = pdf_path

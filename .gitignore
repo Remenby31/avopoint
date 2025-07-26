@@ -1,3 +1,8 @@
 /results
 /venv
 /__pycache__
+/temp
+/uploads
+.env
+.claude/*
+.claude/settings.local.json

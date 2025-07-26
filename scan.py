@@ -3,11 +3,11 @@ import dotenv
 import base64
 import json
 from datetime import datetime
-import re
+import re, os
 
 dotenv.load_dotenv()
 
-client = anthropic.Anthropic()
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 def scan_contravention(file_path):
     """
@@ -36,7 +36,7 @@ def scan_contravention(file_path):
                     "role": "user",
                     "content": [
                         {
-                            "type": "image",
+                            "type": "document" if media_type == "application/pdf" else "image",
                             "source": {
                                 "type": "base64",
                                 "media_type": media_type,
@@ -136,7 +136,7 @@ def scan_permis_conduire(file_path):
                     "role": "user",
                     "content": [
                         {
-                            "type": "image",
+                            "type": "document" if media_type == "application/pdf" else "image",
                             "source": {
                                 "type": "base64",
                                 "media_type": media_type,
@@ -223,7 +223,7 @@ def scan_certificat_immatriculation(file_path):
                     "role": "user",
                     "content": [
                         {
-                            "type": "image",
+                            "type": "document" if media_type == "application/pdf" else "image",
                             "source": {
                                 "type": "base64",
                                 "media_type": media_type,
@@ -305,7 +305,7 @@ def scan_justificatif_domicile(file_path):
                     "role": "user",
                     "content": [
                         {
-                            "type": "image",
+                            "type": "document" if media_type == "application/pdf" else "image",
                             "source": {
                                 "type": "base64",
                                 "media_type": media_type,
