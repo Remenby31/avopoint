@@ -6,3 +6,4 @@
 .env
 .claude/*
 .claude/settings.local.json
+/frontend_lovable

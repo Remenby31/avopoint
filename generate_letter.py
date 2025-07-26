@@ -117,7 +117,7 @@ class LetterGenerator:
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib.units import cm
             from reportlab.lib import colors
-            from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+            from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
             
             pdf_path = self.results_dir / f"contestation_{task_id}.pdf"
             
@@ -132,20 +132,20 @@ class LetterGenerator:
             styles = getSampleStyleSheet()
             
             # Styles personnalisés
-            title_style = ParagraphStyle(
-                'CustomTitle', 
-                parent=styles['Heading1'],
-                alignment=TA_CENTER, 
-                spaceAfter=30,
-                fontSize=16,
-                textColor=colors.black
-            )
-            
             header_style = ParagraphStyle(
                 'HeaderStyle',
                 parent=styles['Normal'],
+                alignment=TA_LEFT,
+                spaceAfter=12,
+                fontName='Helvetica-Bold'
+            )
+            
+            date_right_style = ParagraphStyle(
+                'DateRightStyle',
+                parent=styles['Normal'],
                 alignment=TA_RIGHT,
-                spaceAfter=12
+                spaceAfter=12,
+                fontName='Helvetica-Bold'
             )
             
             bold_style = ParagraphStyle(
@@ -175,136 +175,73 @@ class LetterGenerator:
             if contravention_data and "infraction" in contravention_data:
                 lieu_contravention = contravention_data["infraction"].get("route", "N/A")
             
-            immatriculation = "N/A"
-            if certificat_data and "vehicule" in certificat_data:
-                immatriculation = certificat_data["vehicule"].get("immatriculation", "N/A")
-                
-            marque_vehicule = "N/A"
-            if certificat_data and "vehicule" in certificat_data:
-                marque_vehicule = certificat_data["vehicule"].get("marque", "N/A")
+            date_lettre = datetime.now().strftime("%d %B %Y")
             
-            date_lettre = datetime.now().strftime("%d/%m/%Y")
-            
-            expediteur_text = f"""
-            {nom_prenom}<br/>
-            {adresse}<br/><br/>
-            Le {date_lettre}
+            # En-tête avocat (aligné à gauche comme dans LaTeX)
+            avocat_header = """
+            <b>Maître Yoann LEROUGE</b><br/>
+            Cabinet YSL<br/>
+            74 rue du Faubourg Saint-Denis<br/>
+            75010 PARIS
             """
-            story.append(Paragraph(expediteur_text, header_style))
-            story.append(Spacer(1, 1*cm))
+            story.append(Paragraph(avocat_header, header_style))
+            story.append(Spacer(1, 0.6*cm))
             
-            # Destinataire
-            destinataire_text = """
-            <b>À l'attention de :</b><br/>
-            Service de Traitement des Contraventions<br/>
-            Centre National de Traitement<br/>
-            CS 41101<br/>
-            35911 RENNES CEDEX 9
+            # Destinataire et date (alignés à droite)
+            destinataire_date = f"""
+            <b>L'Officier du Ministère Public</b><br/>
+            CONTESTATION VITESSE<br/>
+            CS41101<br/>
+            35911 RENNES CEDEX 9<br/><br/>
+            <b>Paris,</b> le {date_lettre}
             """
-            story.append(Paragraph(destinataire_text, styles['Normal']))
-            story.append(Spacer(1, 1*cm))
+            story.append(Paragraph(destinataire_date, date_right_style))
+            story.append(Spacer(1, 0.6*cm))
             
-            # Titre
-            story.append(Paragraph("CONTESTATION DE CONTRAVENTION", title_style))
-            story.append(Paragraph(f"<b>Avis de contravention n° {numero_contravention}</b>", 
-                                 ParagraphStyle('SubTitle', parent=styles['Normal'], 
-                                              alignment=TA_CENTER, spaceAfter=20)))
-            
-            # Corps de la lettre
-            story.append(Paragraph("Madame, Monsieur,", styles['Normal']))
-            story.append(Spacer(1, 0.5*cm))
-            
-            intro_text = f"""
-            Je conteste par la présente l'avis de contravention mentionné en objet, 
-            établi le {date_contravention} à {lieu_contravention}, concernant le véhicule 
-            immatriculé {immatriculation}.
+            # Objet
+            objet_text = f"""
+            <b>Objet : Contestation d'un procès-verbal pour excès de vitesse</b><br/>
+            <i>Avis de contravention n° {numero_contravention}</i>
             """
-            story.append(Paragraph(intro_text, styles['Normal']))
-            story.append(Spacer(1, 0.5*cm))
+            story.append(Paragraph(objet_text, styles['Normal']))
+            story.append(Spacer(1, 0.3*cm))
             
-            # Tableau des références
-            story.append(Paragraph("<b>RÉFÉRENCES DE LA CONTRAVENTION :</b>", bold_style))
+            # Corps de la lettre (même texte que LaTeX)
+            story.append(Paragraph("Madame, Monsieur l'Officier du Ministère Public,", styles['Normal']))
+            story.append(Spacer(1, 0.3*cm))
             
-            # Extraction sécurisée du montant
-            montant = "N/A"
-            if contravention_data and "infraction" in contravention_data:
-                vitesse_max = contravention_data["infraction"].get("vitesse_maximale_autorisee", 0)
-                if vitesse_max and vitesse_max != "NONE":
-                    # Estimation du montant selon la vitesse (simplifié)
-                    if isinstance(vitesse_max, (int, float)) and vitesse_max > 0:
-                        if vitesse_max <= 50:
-                            montant = "135"
-                        elif vitesse_max <= 90:
-                            montant = "68"
-                        else:
-                            montant = "135"
-            
-            ref_data = [
-                ['Numéro d\'avis :', numero_contravention],
-                ['Date de l\'infraction :', date_contravention],
-                ['Lieu :', lieu_contravention],
-                ['Montant :', f"{montant} €"],
-                ['Véhicule :', f"{marque_vehicule}"],
-                ['Immatriculation :', immatriculation]
-            ]
-            
-            ref_table = Table(ref_data, colWidths=[5*cm, 10*cm])
-            ref_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ]))
-            story.append(ref_table)
-            story.append(Spacer(1, 0.5*cm))
-            
-            # Motifs de contestation
-            story.append(Paragraph("<b>MOTIFS DE CONTESTATION :</b>", bold_style))
-            
-            motifs = self._get_motifs_text(driver_visible)
-            for i, motif in enumerate(motifs, 1):
-                story.append(Paragraph(f"{i}. {motif}", styles['Normal']))
-                story.append(Spacer(1, 6))
-            
-            story.append(Spacer(1, 0.5*cm))
-            
-            # Conclusion
-            conclusion_text = """
-            En application des articles 529-2 et suivants du Code de procédure pénale, 
-            je conteste formellement cette contravention et demande son annulation.
+            corps_text = f"""
+            En qualité de représentant de {nom_prenom}, domicilié au {adresse}, j'ai été mandaté pour
+            contester l'avis de contravention n° {numero_contravention} reçu en date du {date_contravention},
+            concernant un excès de vitesse supposé commis à cette occasion.
             """
-            story.append(Paragraph(conclusion_text, styles['Normal']))
-            story.append(Spacer(1, 0.5*cm))
+            story.append(Paragraph(corps_text, styles['Normal']))
+            story.append(Spacer(1, 0.3*cm))
             
-            story.append(Paragraph(
-                "Je vous prie de bien vouloir annuler cette contravention et vous remercie "
-                "de l'attention que vous porterez à ma demande.", styles['Normal']
-            ))
-            story.append(Spacer(1, 1*cm))
+            corps_text2 = """
+            En tant que propriétaire du véhicule responsable de l'infraction, mon client a été présumé en
+            être le conducteur au moment des faits. Toutefois, mon client conteste être le conducteur au
+            moment de la réalisation de l'infraction. De plus, la photographie prise (ci-jointe) ne permet pas
+            d'identifier le conducteur.
+            """
+            story.append(Paragraph(corps_text2, styles['Normal']))
+            story.append(Spacer(1, 0.3*cm))
             
-            story.append(Paragraph(
-                "Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.",
-                styles['Normal']
-            ))
-            story.append(Spacer(1, 2*cm))
+            corps_text3 = """
+            En conséquence, je sollicite l'annulation de ce procès-verbal pour les raisons évoquées.
+            """
+            story.append(Paragraph(corps_text3, styles['Normal']))
+            story.append(Spacer(1, 0.3*cm))
             
-            # Signature
-            signature_text = f"{nom_prenom}<br/><i>Signature</i>"
-            story.append(Paragraph(signature_text, header_style))
-            story.append(Spacer(1, 1*cm))
+            corps_text4 = """
+            Dans l'attente de votre retour, je vous remercie pour l'examen attentif de la demande.
+            """
+            story.append(Paragraph(corps_text4, styles['Normal']))
+            story.append(Spacer(1, 1.2*cm))
             
-            # Pièces jointes
-            story.append(Paragraph("<b>Pièces jointes :</b>", bold_style))
-            pieces_jointes = [
-                "Copie de l'avis de contravention",
-                "Copie du certificat d'immatriculation",
-                "Copie du permis de conduire",
-                "Copie du justificatif de domicile",
-                "Photo du contrôle radar (si applicable)"
-            ]
-            
-            for piece in pieces_jointes:
-                story.append(Paragraph(f"• {piece}", styles['Normal']))
+            # Signature (alignée à droite)
+            signature_text = "<b>Maître Yoann LEROUGE</b>"
+            story.append(Paragraph(signature_text, date_right_style))
             
             # Génération du PDF
             doc.build(story)
@@ -348,34 +285,7 @@ class LetterGenerator:
         if contravention_data and "infraction" in contravention_data:
             date_contravention = contravention_data["infraction"].get("date_heure", "N/A")
         
-        lieu_contravention = "N/A"
-        if contravention_data and "infraction" in contravention_data:
-            lieu_contravention = contravention_data["infraction"].get("route", "N/A")
-        
-        immatriculation = "N/A"
-        if certificat_data and "vehicule" in certificat_data:
-            immatriculation = certificat_data["vehicule"].get("immatriculation", "N/A")
-            
-        marque_vehicule = "N/A"
-        if certificat_data and "vehicule" in certificat_data:
-            marque_vehicule = certificat_data["vehicule"].get("marque", "N/A")
-        
-        # Estimation du montant
-        montant = "N/A"
-        if contravention_data and "infraction" in contravention_data:
-            vitesse_max = contravention_data["infraction"].get("vitesse_maximale_autorisee", 0)
-            if vitesse_max and vitesse_max != "NONE":
-                if isinstance(vitesse_max, (int, float)) and vitesse_max > 0:
-                    if vitesse_max <= 50:
-                        montant = "135"
-                    elif vitesse_max <= 90:
-                        montant = "68"
-                    else:
-                        montant = "135"
-        
-        date_lettre = datetime.now().strftime("%d/%m/%Y")
-        
-        motifs = self._get_motifs_html(driver_visible)
+        date_lettre = datetime.now().strftime("%d %B %Y")
         
         html_content = f"""
 <!DOCTYPE html>
@@ -400,61 +310,28 @@ class LetterGenerator:
             color: #000;
         }}
         
-        .header {{
+        .header-avocat {{
+            text-align: left;
+            margin-bottom: 0.6cm;
+        }}
+        
+        .destinataire-date {{
             text-align: right;
-            margin-bottom: 2cm;
+            margin-bottom: 0.6cm;
         }}
         
-        .destinataire {{
-            margin-bottom: 2cm;
+        .objet {{
+            margin-bottom: 0.3cm;
         }}
         
-        .titre {{
-            text-align: center;
-            font-weight: bold;
-            font-size: 14pt;
-            margin: 2cm 0;
-        }}
-        
-        .references {{
-            margin: 1cm 0;
-        }}
-        
-        .references table {{
-            width: 100%;
-            border-collapse: collapse;
-        }}
-        
-        .references td:first-child {{
-            font-weight: bold;
-            width: 30%;
-            padding: 3px 0;
-        }}
-        
-        .motifs {{
-            margin: 1cm 0;
-        }}
-        
-        .motifs ol {{
-            padding-left: 1.5cm;
-        }}
-        
-        .motifs li {{
-            margin-bottom: 0.5cm;
+        .corps {{
             text-align: justify;
+            margin-bottom: 0.3cm;
         }}
         
         .signature {{
             text-align: right;
-            margin-top: 3cm;
-        }}
-        
-        .pieces-jointes {{
-            margin-top: 2cm;
-        }}
-        
-        .pieces-jointes ul {{
-            padding-left: 1cm;
+            margin-top: 1.2cm;
         }}
         
         .bold {{
@@ -463,66 +340,43 @@ class LetterGenerator:
     </style>
 </head>
 <body>
-    <div class="header">
-        {nom_prenom}<br>
-        {adresse}<br><br>
-        Le {date_lettre}
+    <div class="header-avocat">
+        <strong>Maître Yoann LEROUGE</strong><br>
+        Cabinet YSL<br>
+        74 rue du Faubourg Saint-Denis<br>
+        75010 PARIS
     </div>
     
-    <div class="destinataire">
-        <strong>À l'attention de :</strong><br>
-        Service de Traitement des Contraventions<br>
-        Centre National de Traitement<br>
-        CS 41101<br>
-        35911 RENNES CEDEX 9
+    <div class="destinataire-date">
+        <strong>L'Officier du Ministère Public</strong><br>
+        CONTESTATION VITESSE<br>
+        CS41101<br>
+        35911 RENNES CEDEX 9<br><br>
+        <strong>Paris,</strong> le {date_lettre}
     </div>
     
-    <div class="titre">
-        CONTESTATION DE CONTRAVENTION<br>
-        <strong>Avis de contravention n° {numero_contravention}</strong>
+    <div class="objet">
+        <strong>Objet : Contestation d'un procès-verbal pour excès de vitesse</strong><br>
+        <em>Avis de contravention n° {numero_contravention}</em>
     </div>
     
-    <p>Madame, Monsieur,</p>
+    <p class="corps">Madame, Monsieur l'Officier du Ministère Public,</p>
     
-    <p>Je conteste par la présente l'avis de contravention mentionné en objet, établi le {date_contravention} à {lieu_contravention}, concernant le véhicule immatriculé {immatriculation}.</p>
+    <p class="corps">En qualité de représentant de {nom_prenom}, domicilié au {adresse}, j'ai été mandaté pour
+    contester l'avis de contravention n° {numero_contravention} reçu en date du {date_contravention},
+    concernant un excès de vitesse supposé commis à cette occasion.</p>
     
-    <div class="references">
-        <p class="bold">RÉFÉRENCES DE LA CONTRAVENTION :</p>
-        <table>
-            <tr><td>Numéro d'avis :</td><td>{numero_contravention}</td></tr>
-            <tr><td>Date de l'infraction :</td><td>{date_contravention}</td></tr>
-            <tr><td>Lieu :</td><td>{lieu_contravention}</td></tr>
-            <tr><td>Montant :</td><td>{montant} €</td></tr>
-            <tr><td>Véhicule :</td><td>{marque_vehicule}</td></tr>
-            <tr><td>Immatriculation :</td><td>{immatriculation}</td></tr>
-        </table>
-    </div>
+    <p class="corps">En tant que propriétaire du véhicule responsable de l'infraction, mon client a été présumé en
+    être le conducteur au moment des faits. Toutefois, mon client conteste être le conducteur au
+    moment de la réalisation de l'infraction. De plus, la photographie prise (ci-jointe) ne permet pas
+    d'identifier le conducteur.</p>
     
-    <div class="motifs">
-        <p class="bold">MOTIFS DE CONTESTATION :</p>
-        {motifs}
-    </div>
+    <p class="corps">En conséquence, je sollicite l'annulation de ce procès-verbal pour les raisons évoquées.</p>
     
-    <p>En application des articles 529-2 et suivants du Code de procédure pénale, je conteste formellement cette contravention et demande son annulation.</p>
-    
-    <p>Je vous prie de bien vouloir annuler cette contravention et vous remercie de l'attention que vous porterez à ma demande.</p>
-    
-    <p>Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.</p>
+    <p class="corps">Dans l'attente de votre retour, je vous remercie pour l'examen attentif de la demande.</p>
     
     <div class="signature">
-        {nom_prenom}<br>
-        <em>Signature</em>
-    </div>
-    
-    <div class="pieces-jointes">
-        <p class="bold">Pièces jointes :</p>
-        <ul>
-            <li>Copie de l'avis de contravention</li>
-            <li>Copie du certificat d'immatriculation</li>
-            <li>Copie du permis de conduire</li>
-            <li>Copie du justificatif de domicile</li>
-            <li>Photo du contrôle radar (si applicable)</li>
-        </ul>
+        <strong>Maître Yoann LEROUGE</strong>
     </div>
 </body>
 </html>

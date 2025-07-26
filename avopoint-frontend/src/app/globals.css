@@ -2,32 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Avopoints Design System - Professional, Legal Theme */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Brandbook Colors - Avopoints */
+    --background: 40 25% 97%;           /* Blanc cassé #FAF9F6 */
+    --foreground: 209 67% 14%;          /* Bleu nuit #0B1F3A */
+
+    /* Cards & Surfaces */
+    --card: 40 25% 97%;                 /* Blanc cassé */
+    --card-foreground: 209 67% 14%;     /* Bleu nuit */
+
+    --popover: 40 25% 97%;              /* Blanc cassé */
+    --popover-foreground: 209 67% 14%;  /* Bleu nuit */
+
+    /* Primary - Bleu nuit */
+    --primary: 209 67% 14%;             /* #0B1F3A */
+    --primary-foreground: 40 25% 97%;   /* Blanc cassé */
+    --primary-hover: 209 67% 10%;       /* Version plus foncée */
+
+    /* Secondary - Variations du blanc cassé */
+    --secondary: 40 20% 94%;            /* Plus foncé que le blanc cassé */
+    --secondary-foreground: 209 67% 14%; /* Bleu nuit */
+
+    /* Muted - Gris froid et variations */
+    --muted: 40 15% 92%;                /* Gris très clair */
+    --muted-foreground: 220 16% 59%;    /* Gris froid #8891A2 */
+
+    /* Accent - Vert menthe */
+    --accent: 158 73% 56%;              /* #3DE0B4 */
+    --accent-foreground: 209 67% 14%;   /* Bleu nuit */
+
+    /* Section Colors for Visual Separation */
+    --section-light: 40 25% 97%;        /* Blanc cassé principal */
+    --section-medium: 40 20% 94%;       /* Blanc cassé légèrement teinté */
+    --section-dark: 209 67% 14%;        /* Bleu nuit */
+    --section-accent: 158 73% 95%;      /* Vert menthe très clair */
+
+    /* Status Colors */
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 40 25% 97%;
+    
+    --success: 158 73% 56%;             /* Vert menthe pour succès */
+    --success-foreground: 209 67% 14%;  /* Bleu nuit */
+    
+    --warning: 35 85% 55%;
+    --warning-foreground: 209 67% 14%;
+
+    /* Borders & Inputs */
+    --border: 220 16% 85%;              /* Gris froid clair */
+    --input: 40 15% 92%;                /* Gris très clair */
+    --ring: 158 73% 56%;                /* Vert menthe pour focus */
+
+    --radius: 0.75rem;
+
+    /* Professional Spacing */
+    --section-padding: 5rem;
+    --container-max-width: 1200px;
+    
+    /* Shadows avec bleu nuit */
+    --shadow-soft: 0 1px 3px 0 hsl(209 67% 14% / 0.1), 0 1px 2px 0 hsl(209 67% 14% / 0.06);
+    --shadow-medium: 0 4px 6px -1px hsl(209 67% 14% / 0.1), 0 2px 4px -1px hsl(209 67% 14% / 0.06);
+    --shadow-large: 0 20px 25px -5px hsl(209 67% 14% / 0.1), 0 10px 10px -5px hsl(209 67% 14% / 0.04);
+    
+    /* Transitions */
+    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-hover)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8));
+    --gradient-subtle: linear-gradient(135deg, hsl(var(--background)), hsl(var(--secondary)));
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: system-ui, -apple-system, sans-serif;
+  }
 }
 
-/* Custom animations for processing status */
+/* Custom animations et styles Avopoints */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -50,12 +142,32 @@ body {
   }
 }
 
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes gradient-shift {
   0%, 100% {
     background-position: 0% 50%;
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
   }
 }
 
@@ -67,10 +179,42 @@ body {
   animation: slide-in-right 0.5s ease-out;
 }
 
+.animate-scale-in {
+  animation: scale-in 0.4s ease-out;
+}
+
 .animate-gradient {
-  background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+  background: linear-gradient(-45deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)), hsl(var(--accent)));
   background-size: 400% 400%;
   animation: gradient-shift 3s ease infinite;
+}
+
+/* Styles spéciaux Avopoints */
+.hover-scale {
+  transition: transform 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-medium {
+  box-shadow: var(--shadow-medium);
+}
+
+.shadow-large {
+  box-shadow: var(--shadow-large);
+}
+
+.bg-grid-small-accent\/10 {
+  background-image: 
+    linear-gradient(hsl(var(--accent) / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--accent) / 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 /* Enhanced progress bar shimmer effect */
@@ -93,13 +237,4 @@ body {
     transparent
   );
   animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
 }
