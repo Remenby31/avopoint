@@ -2,7 +2,7 @@ import anthropic
 import dotenv
 import base64
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
 
 dotenv.load_dotenv()

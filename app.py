@@ -1,15 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Dict, Optional, List
-import asyncio
+from typing import Dict, Optional
 import uuid
 import os
 import shutil
 from pathlib import Path
 import logging
 from datetime import datetime
-import json
 
 # Import des fonctions de scan OCR
 from scan import (
@@ -418,4 +416,4 @@ async def list_tasks():
 # Point d'entrée pour lancer l'application
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

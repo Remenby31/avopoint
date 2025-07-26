@@ -3,14 +3,11 @@ Module amélioré de génération de lettres de contestation de contraventions
 Inclut de meilleurs fallbacks et une gestion d'erreurs robuste
 """
 
-import os
 import subprocess
 import tempfile
 from pathlib import Path
 from datetime import datetime
 import logging
-from typing import Dict, Optional, Union
-import sys
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +73,40 @@ class LetterGenerator:
         
         return self._compile_latex_to_pdf(latex_content, task_id)
 
+    def _extract_nom_prenom(self, permis_data, domicile_data, certificat_data):
+        """Extrait nom et prénom de manière robuste depuis les données"""
+        # Essayer d'abord le permis
+        if permis_data and "identite" in permis_data:
+            identite = permis_data["identite"]
+            nom = identite.get("nom", "")
+            prenom = identite.get("prenom", "")
+            if nom and nom != "NONE":
+                return f"{prenom} {nom}".strip()
+        
+        # Ensuite le domicile
+        if domicile_data and "personne" in domicile_data:
+            personne = domicile_data["personne"]
+            nom = personne.get("nom", "")
+            prenom = personne.get("prenom", "")
+            if nom and nom != "NONE":
+                return f"{prenom} {nom}".strip()
+        
+        # Enfin le certificat
+        if certificat_data and "proprietaire" in certificat_data:
+            proprietaire = certificat_data["proprietaire"]
+            nom = proprietaire.get("nom", "")
+            prenom = proprietaire.get("prenom", "")
+            if nom and nom != "NONE":
+                return f"{prenom} {nom}".strip()
+        
+        return "N/A"
+    
+    def _extract_adresse(self, domicile_data):
+        """Extrait l'adresse depuis les données de domicile"""
+        if domicile_data and "domicile" in domicile_data:
+            return domicile_data["domicile"].get("adresse", "N/A")
+        return "N/A"
+
     def _generate_with_reportlab(self, contravention_data, certificat_data, permis_data, 
                                domicile_data, driver_visible, task_id):
         """Génération avec ReportLab (améliorée)"""
@@ -86,7 +117,7 @@ class LetterGenerator:
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib.units import cm
             from reportlab.lib import colors
-            from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+            from reportlab.lib.enums import TA_CENTER, TA_RIGHT
             
             pdf_path = self.results_dir / f"contestation_{task_id}.pdf"
             
@@ -127,17 +158,36 @@ class LetterGenerator:
             # Construction du document
             story = []
             
-            # En-tête avec informations expéditeur
-            nom_prenom = permis_data.get("nom_prenom", domicile_data.get("nom_prenom", "N/A"))
-            adresse = domicile_data.get("adresse", "N/A")
-            code_postal = domicile_data.get("code_postal", "N/A")
-            ville = domicile_data.get("ville", "N/A")
+            # Extraction des données avec les nouvelles méthodes robustes
+            nom_prenom = self._extract_nom_prenom(permis_data, domicile_data, certificat_data)
+            adresse = self._extract_adresse(domicile_data)
+            
+            # Extraction des autres champs nécessaires
+            numero_contravention = "N/A"
+            if contravention_data and "infraction" in contravention_data:
+                numero_contravention = contravention_data["infraction"].get("numero_avis", "N/A")
+            
+            date_contravention = "N/A"
+            if contravention_data and "infraction" in contravention_data:
+                date_contravention = contravention_data["infraction"].get("date_heure", "N/A")
+            
+            lieu_contravention = "N/A"
+            if contravention_data and "infraction" in contravention_data:
+                lieu_contravention = contravention_data["infraction"].get("route", "N/A")
+            
+            immatriculation = "N/A"
+            if certificat_data and "vehicule" in certificat_data:
+                immatriculation = certificat_data["vehicule"].get("immatriculation", "N/A")
+                
+            marque_vehicule = "N/A"
+            if certificat_data and "vehicule" in certificat_data:
+                marque_vehicule = certificat_data["vehicule"].get("marque", "N/A")
+            
             date_lettre = datetime.now().strftime("%d/%m/%Y")
             
             expediteur_text = f"""
             {nom_prenom}<br/>
-            {adresse}<br/>
-            {code_postal} {ville}<br/><br/>
+            {adresse}<br/><br/>
             Le {date_lettre}
             """
             story.append(Paragraph(expediteur_text, header_style))
@@ -155,7 +205,6 @@ class LetterGenerator:
             story.append(Spacer(1, 1*cm))
             
             # Titre
-            numero_contravention = contravention_data.get("numero", "N/A")
             story.append(Paragraph("CONTESTATION DE CONTRAVENTION", title_style))
             story.append(Paragraph(f"<b>Avis de contravention n° {numero_contravention}</b>", 
                                  ParagraphStyle('SubTitle', parent=styles['Normal'], 
@@ -164,11 +213,6 @@ class LetterGenerator:
             # Corps de la lettre
             story.append(Paragraph("Madame, Monsieur,", styles['Normal']))
             story.append(Spacer(1, 0.5*cm))
-            
-            # Informations contravention
-            date_contravention = contravention_data.get("date", "N/A")
-            lieu_contravention = contravention_data.get("lieu", "N/A")
-            immatriculation = certificat_data.get("immatriculation", "N/A")
             
             intro_text = f"""
             Je conteste par la présente l'avis de contravention mentionné en objet, 
@@ -181,16 +225,26 @@ class LetterGenerator:
             # Tableau des références
             story.append(Paragraph("<b>RÉFÉRENCES DE LA CONTRAVENTION :</b>", bold_style))
             
-            montant = contravention_data.get("montant", "N/A")
-            marque_vehicule = certificat_data.get("marque", "N/A")
-            modele_vehicule = certificat_data.get("modele", "N/A")
+            # Extraction sécurisée du montant
+            montant = "N/A"
+            if contravention_data and "infraction" in contravention_data:
+                vitesse_max = contravention_data["infraction"].get("vitesse_maximale_autorisee", 0)
+                if vitesse_max and vitesse_max != "NONE":
+                    # Estimation du montant selon la vitesse (simplifié)
+                    if isinstance(vitesse_max, (int, float)) and vitesse_max > 0:
+                        if vitesse_max <= 50:
+                            montant = "135"
+                        elif vitesse_max <= 90:
+                            montant = "68"
+                        else:
+                            montant = "135"
             
             ref_data = [
                 ['Numéro d\'avis :', numero_contravention],
                 ['Date de l\'infraction :', date_contravention],
                 ['Lieu :', lieu_contravention],
                 ['Montant :', f"{montant} €"],
-                ['Véhicule :', f"{marque_vehicule} {modele_vehicule}"],
+                ['Véhicule :', f"{marque_vehicule}"],
                 ['Immatriculation :', immatriculation]
             ]
             
@@ -282,21 +336,44 @@ class LetterGenerator:
                              domicile_data, driver_visible):
         """Génère le contenu HTML de la lettre"""
         
-        # Extraction des données
+        # Extraction robuste des données
+        nom_prenom = self._extract_nom_prenom(permis_data, domicile_data, certificat_data)
+        adresse = self._extract_adresse(domicile_data)
+        
+        numero_contravention = "N/A"
+        if contravention_data and "infraction" in contravention_data:
+            numero_contravention = contravention_data["infraction"].get("numero_avis", "N/A")
+        
+        date_contravention = "N/A"
+        if contravention_data and "infraction" in contravention_data:
+            date_contravention = contravention_data["infraction"].get("date_heure", "N/A")
+        
+        lieu_contravention = "N/A"
+        if contravention_data and "infraction" in contravention_data:
+            lieu_contravention = contravention_data["infraction"].get("route", "N/A")
+        
+        immatriculation = "N/A"
+        if certificat_data and "vehicule" in certificat_data:
+            immatriculation = certificat_data["vehicule"].get("immatriculation", "N/A")
+            
+        marque_vehicule = "N/A"
+        if certificat_data and "vehicule" in certificat_data:
+            marque_vehicule = certificat_data["vehicule"].get("marque", "N/A")
+        
+        # Estimation du montant
+        montant = "N/A"
+        if contravention_data and "infraction" in contravention_data:
+            vitesse_max = contravention_data["infraction"].get("vitesse_maximale_autorisee", 0)
+            if vitesse_max and vitesse_max != "NONE":
+                if isinstance(vitesse_max, (int, float)) and vitesse_max > 0:
+                    if vitesse_max <= 50:
+                        montant = "135"
+                    elif vitesse_max <= 90:
+                        montant = "68"
+                    else:
+                        montant = "135"
+        
         date_lettre = datetime.now().strftime("%d/%m/%Y")
-        numero_contravention = contravention_data.get("numero", "N/A")
-        date_contravention = contravention_data.get("date", "N/A")
-        lieu_contravention = contravention_data.get("lieu", "N/A")
-        montant = contravention_data.get("montant", "N/A")
-        
-        immatriculation = certificat_data.get("immatriculation", "N/A")
-        marque_vehicule = certificat_data.get("marque", "N/A")
-        modele_vehicule = certificat_data.get("modele", "N/A")
-        
-        nom_prenom = permis_data.get("nom_prenom", domicile_data.get("nom_prenom", "N/A"))
-        adresse = domicile_data.get("adresse", "N/A")
-        code_postal = domicile_data.get("code_postal", "N/A")
-        ville = domicile_data.get("ville", "N/A")
         
         motifs = self._get_motifs_html(driver_visible)
         
@@ -388,8 +465,7 @@ class LetterGenerator:
 <body>
     <div class="header">
         {nom_prenom}<br>
-        {adresse}<br>
-        {code_postal} {ville}<br><br>
+        {adresse}<br><br>
         Le {date_lettre}
     </div>
     
@@ -417,7 +493,7 @@ class LetterGenerator:
             <tr><td>Date de l'infraction :</td><td>{date_contravention}</td></tr>
             <tr><td>Lieu :</td><td>{lieu_contravention}</td></tr>
             <tr><td>Montant :</td><td>{montant} €</td></tr>
-            <tr><td>Véhicule :</td><td>{marque_vehicule} {modele_vehicule}</td></tr>
+            <tr><td>Véhicule :</td><td>{marque_vehicule}</td></tr>
             <tr><td>Immatriculation :</td><td>{immatriculation}</td></tr>
         </table>
     </div>
@@ -483,14 +559,178 @@ class LetterGenerator:
         return html_motifs
 
     def _generate_latex_content(self, contravention_data, certificat_data, permis_data, domicile_data, driver_visible):
-        """Version originale de génération LaTeX (code existant)"""
-        # Votre code LaTeX existant ici
-        pass
+        """Génération du contenu LaTeX pour la lettre"""
+        
+        # Extraction robuste des données
+        nom_prenom = self._extract_nom_prenom(permis_data, domicile_data, certificat_data)
+        adresse = self._extract_adresse(domicile_data)
+        
+        numero_contravention = "N/A"
+        if contravention_data and "infraction" in contravention_data:
+            numero_contravention = contravention_data["infraction"].get("numero_avis", "N/A")
+        
+        date_contravention = "N/A"
+        if contravention_data and "infraction" in contravention_data:
+            date_contravention = contravention_data["infraction"].get("date_heure", "N/A")
+        
+        lieu_contravention = "N/A"
+        if contravention_data and "infraction" in contravention_data:
+            lieu_contravention = contravention_data["infraction"].get("route", "N/A")
+        
+        immatriculation = "N/A"
+        if certificat_data and "vehicule" in certificat_data:
+            immatriculation = certificat_data["vehicule"].get("immatriculation", "N/A")
+            
+        marque_vehicule = "N/A"
+        if certificat_data and "vehicule" in certificat_data:
+            marque_vehicule = certificat_data["vehicule"].get("marque", "N/A")
+        
+        date_lettre = datetime.now().strftime("%d/%m/%Y")
+        
+        # Génération du contenu LaTeX
+        latex_content = f"""
+\\documentclass[11pt,a4paper]{{article}}
+\\usepackage[utf8]{{inputenc}}
+\\usepackage[french]{{babel}}
+\\usepackage[margin=2.5cm]{{geometry}}
+\\usepackage{{fancyhdr}}
+\\usepackage{{setspace}}
+
+\\begin{{document}}
+
+\\begin{{flushright}}
+{nom_prenom}\\\\
+{adresse}\\\\
+\\\\
+Le {date_lettre}
+\\end{{flushright}}
+
+\\vspace{{1cm}}
+
+\\textbf{{À l'attention de :}}\\\\
+Service de Traitement des Contraventions\\\\
+Centre National de Traitement\\\\
+CS 41101\\\\
+35911 RENNES CEDEX 9
+
+\\vspace{{2cm}}
+
+\\begin{{center}}
+\\textbf{{\\large CONTESTATION DE CONTRAVENTION}}\\\\
+\\textbf{{Avis de contravention n° {numero_contravention}}}
+\\end{{center}}
+
+\\vspace{{1cm}}
+
+Madame, Monsieur,
+
+Je conteste par la présente l'avis de contravention mentionné en objet, établi le {date_contravention} concernant le véhicule immatriculé {immatriculation}.
+
+\\textbf{{RÉFÉRENCES DE LA CONTRAVENTION :}}
+\\begin{{itemize}}
+\\item Numéro d'avis : {numero_contravention}
+\\item Date de l'infraction : {date_contravention}  
+\\item Lieu : {lieu_contravention}
+\\item Véhicule : {marque_vehicule}
+\\item Immatriculation : {immatriculation}
+\\end{{itemize}}
+
+\\textbf{{MOTIFS DE CONTESTATION :}}
+\\begin{{enumerate}}
+"""
+        
+        # Ajouter les motifs selon la visibilité du conducteur
+        motifs = self._get_motifs_latex(driver_visible)
+        for motif in motifs:
+            latex_content += f"\\item {motif}\n"
+        
+        latex_content += f"""
+\\end{{enumerate}}
+
+En application des articles 529-2 et suivants du Code de procédure pénale, je conteste formellement cette contravention et demande son annulation.
+
+Je vous prie de bien vouloir annuler cette contravention et vous remercie de l'attention que vous porterez à ma demande.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+\\vspace{{2cm}}
+
+\\begin{{flushright}}
+{nom_prenom}\\\\
+\\textit{{Signature}}
+\\end{{flushright}}
+
+\\textbf{{Pièces jointes :}}
+\\begin{{itemize}}
+\\item Copie de l'avis de contravention
+\\item Copie du certificat d'immatriculation  
+\\item Copie du permis de conduire
+\\item Copie du justificatif de domicile
+\\item Photo du contrôle radar (si applicable)
+\\end{{itemize}}
+
+\\end{{document}}
+"""
+        
+        return latex_content
+
+    def _get_motifs_latex(self, driver_visible):
+        """Retourne les motifs formatés pour LaTeX"""
+        if driver_visible:
+            return [
+                "Défaut de signalisation : La signalisation du contrôle radar n'était pas conforme aux dispositions réglementaires.",
+                "Conditions de circulation : Les conditions ne permettaient pas le respect de la limitation en sécurité.",
+                "Calibrage de l'appareil : Je conteste la fiabilité de l'appareil de contrôle.",
+                "Erreur sur la personne : Je n'étais pas le conducteur au moment des faits.",
+                "Vice de procédure : La procédure présente des irrégularités substantielles."
+            ]
+        else:
+            return [
+                "Impossibilité d'identification du conducteur : La photographie ne permet pas d'identifier clairement le conducteur.",
+                "Défaut de preuve : L'administration doit apporter la preuve de l'infraction selon l'article 529-2 du Code de procédure pénale.",
+                "Principe de présomption d'innocence : Toute personne est présumée innocente jusqu'à établissement de sa culpabilité.",
+                "Qualité de la photographie : La qualité ne permet pas une identification formelle et certaine.",
+                "Usage possible par un tiers : Le véhicule aurait pu être utilisé par une tierce personne autorisée."
+            ]
 
     def _compile_latex_to_pdf(self, latex_content, task_id):
-        """Version originale de compilation LaTeX (code existant)"""
-        # Votre code de compilation existant ici
-        pass
+        """Compilation du LaTeX en PDF"""
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Créer le fichier .tex
+            tex_file = Path(temp_dir) / f"contestation_{task_id}.tex"
+            
+            with open(tex_file, 'w', encoding='utf-8') as f:
+                f.write(latex_content)
+            
+            # Compiler avec pdflatex
+            try:
+                result = subprocess.run([
+                    'pdflatex', 
+                    '-output-directory', temp_dir,
+                    '-interaction=nonstopmode',
+                    str(tex_file)
+                ], capture_output=True, text=True, timeout=30)
+                
+                if result.returncode != 0:
+                    raise Exception(f"Erreur de compilation LaTeX: {result.stderr}")
+                
+                # Copier le PDF vers le répertoire de résultats
+                pdf_source = Path(temp_dir) / f"contestation_{task_id}.pdf"
+                pdf_destination = self.results_dir / f"contestation_{task_id}.pdf"
+                
+                if pdf_source.exists():
+                    import shutil
+                    shutil.copy2(pdf_source, pdf_destination)
+                    logger.info(f"PDF généré avec LaTeX: {pdf_destination}")
+                    return str(pdf_destination)
+                else:
+                    raise Exception("Le fichier PDF n'a pas été généré")
+                    
+            except subprocess.TimeoutExpired:
+                raise Exception("Timeout lors de la compilation LaTeX")
+            except FileNotFoundError:
+                raise Exception("pdflatex non trouvé sur le système")
 
     def _check_latex_availability(self):
         """Vérifie si pdflatex est disponible"""
@@ -504,7 +744,7 @@ class LetterGenerator:
     def _check_reportlab_availability(self):
         """Vérifie si ReportLab est disponible"""
         try:
-            import reportlab
+            from reportlab.lib.pagesizes import A4
             return True
         except ImportError:
             return False
